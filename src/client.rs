@@ -30,33 +30,33 @@ pub struct Config{
 
 impl Client {
 
-	pub async fn with_vault_role(&mut self, vault_role: &str) -> &mut Self {
+    pub async fn with_vault_role(&mut self, vault_role: &str) -> &mut Self {
         let mut config = self.config.write().expect("Failed getting write access to config");
-		config.vault_role = vault_role.to_string();
-		drop(config);
-		self
-	}
-
-	pub async fn with_vault_url(&mut self, vault_url: &str) -> &mut Self {
+        config.vault_role = vault_role.to_string();
+        drop(config);
+        self
+    }
+    
+    pub async fn with_vault_url(&mut self, vault_url: &str) -> &mut Self {
         let mut config = self.config.write().expect("Failed getting write access to config");
-		config.vault_url = vault_url.to_string();
-		drop(config);
-		self
-	}
-
-	pub async fn with_jwt_path(&mut self, jwt_path: &str) -> &mut Self {
+        config.vault_url = vault_url.to_string();
+        drop(config);
+        self
+    }
+    
+    pub async fn with_jwt_path(&mut self, jwt_path: &str) -> &mut Self {
         let mut config = self.config.write().expect("Failed getting write access to config");
-		config.jwt_path = jwt_path.to_string();
-		drop(config);
-		self
-	}
-
-	pub async fn insecure(&mut self, insecure: bool) -> &mut Self {
+        config.jwt_path = jwt_path.to_string();
+        drop(config);
+        self
+    }
+    
+    pub async fn insecure(&mut self, insecure: bool) -> &mut Self {
         let mut config = self.config.write().expect("Failed getting write access to config");
-		config.insecure= insecure;
-		drop(config);
-		self
-	}
+        config.insecure= insecure;
+        drop(config);
+        self
+    }
 
     pub async fn new(&self) -> BoxResult<Self> {
         let config = self.config.read().expect("Failed getting write access to config");
