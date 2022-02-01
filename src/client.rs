@@ -4,7 +4,7 @@ use reqwest::header::{HeaderMap, HeaderValue, HeaderName, CONTENT_TYPE};
 use chrono::offset::Utc;
 use chrono::NaiveDateTime;
 use chrono::DateTime;
-use serde_json::Value;
+use serde_json::{Value, Map};
 use std::sync::{Arc, RwLock};
 use serde::Deserialize;
 
@@ -32,7 +32,7 @@ pub struct Config {
 #[derive(Debug, Clone, Default, Deserialize)]
 #[allow(dead_code)]
 pub struct SecretData {
-    data: String
+    data: Map<String, Value>
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -53,8 +53,13 @@ pub struct VaultSecret {
     metadata: SecretMetadata
 }
 
-impl Client {
+impl VaultSecret {
+    pub async fn data(self) -> SecretData {
+        self.data
+    }
+}
 
+impl Client {
     pub fn with_vault_role(&mut self, vault_role: &str) -> &mut Self {
         let mut config = self.config.write().expect("Failed getting write access to config");
         config.vault_role = vault_role.to_string();
