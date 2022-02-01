@@ -67,7 +67,7 @@ impl Client {
             .build()
             .expect("Failed to build client");
 
-		let config = Config::default();
+        let config = Config::default();
 
         Ok(Self { client, config: Arc::new(RwLock::new(config)) })
 
@@ -109,7 +109,7 @@ impl Client {
 
         // Return headers
         Ok(headers)
-	}
+    }
 
     pub async fn login(&mut self) -> BoxResult<String> {
         // Check out config
@@ -134,7 +134,7 @@ impl Client {
             }
         };
 
-		let body: Value = response.json().await?;
+        let body: Value = response.json().await?;
 
         let token_expires = Utc::now().timestamp() + body["lease_duration"].as_i64().unwrap_or(0);
         let token = body["client_token"].as_str().unwrap_or("error").to_string();
@@ -149,7 +149,7 @@ impl Client {
 
         // Update max_age for new token
         config.token_expires = token_expires;
-		config.jwt_token = jwt_token;
+        config.jwt_token = jwt_token;
 
         Ok(config.token_expires.to_string())
     }
