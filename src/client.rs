@@ -6,10 +6,11 @@ use chrono::NaiveDateTime;
 use chrono::DateTime;
 use serde_json::Value;
 use std::sync::{Arc, RwLock};
+use serde::Deserialize;
 
 type BoxResult<T> = Result<T,Box<dyn Error + Send + Sync>>;
 
-const VAULT_AUTH: &'static str = "auth/kubernetes/login";
+const VAULT_AUTH: &'static str = "v1/auth/kubernetes/login";
 
 #[derive(Debug, Clone, Default)]
 pub struct Client {
@@ -17,8 +18,8 @@ pub struct Client {
     config: Arc<RwLock<Config>>
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct Config{
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct Config {
 	vault_role: String,
 	vault_url: String,
 	jwt_path: String,
@@ -26,6 +27,30 @@ pub struct Config{
     token: String,
     token_expires: i64,
 	insecure: bool
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
+pub struct SecretData {
+    data: String
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
+pub struct SecretMetadata{
+    created_time: String,
+    #[serde(default)]
+    custom_metadata: Value,
+    deletion_time: String,
+    destroyed: bool,
+    version: u64
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
+pub struct VaultSecret {
+    data: SecretData,
+    metadata: SecretMetadata
 }
 
 impl Client {
@@ -81,7 +106,7 @@ impl Client {
 
     }
 
-    pub async fn get(&mut self, path: &str) -> BoxResult<Value> {
+    pub async fn get(&mut self, path: &str) -> BoxResult<VaultSecret> {
         self.renew().await?;
         let uri = format!("{}{}", self.vault_url().await, path);
         log::debug!("Getting json output from {}", &uri);
