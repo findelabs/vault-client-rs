@@ -30,35 +30,43 @@ pub struct Config{
 
 impl Client {
 
-    pub async fn with_vault_role(&mut self, vault_role: &str) -> &mut Self {
+    pub fn with_vault_role(&mut self, vault_role: &str) -> &mut Self {
         let mut config = self.config.write().expect("Failed getting write access to config");
         config.vault_role = vault_role.to_string();
         drop(config);
         self
     }
     
-    pub async fn with_vault_url(&mut self, vault_url: &str) -> &mut Self {
+    pub fn with_vault_url(&mut self, vault_url: &str) -> &mut Self {
         let mut config = self.config.write().expect("Failed getting write access to config");
         config.vault_url = vault_url.to_string();
         drop(config);
         self
     }
     
-    pub async fn with_jwt_path(&mut self, jwt_path: &str) -> &mut Self {
+    pub fn with_jwt_path(&mut self, jwt_path: &str) -> &mut Self {
         let mut config = self.config.write().expect("Failed getting write access to config");
         config.jwt_path = jwt_path.to_string();
         drop(config);
         self
     }
     
-    pub async fn insecure(&mut self, insecure: bool) -> &mut Self {
+    pub fn insecure(&mut self, insecure: bool) -> &mut Self {
         let mut config = self.config.write().expect("Failed getting write access to config");
         config.insecure= insecure;
         drop(config);
         self
     }
 
-    pub async fn new(&self) -> BoxResult<Self> {
+    pub fn new() -> Self {
+        let client = reqwest::Client::default();
+        let config = Config::default();
+
+        Self { client, config: Arc::new(RwLock::new(config)) }
+
+    }
+
+    pub fn build(&mut self) -> BoxResult<Client> {
         let config = self.config.read().expect("Failed getting write access to config");
 
         let client = reqwest::Client::builder()
@@ -67,9 +75,9 @@ impl Client {
             .build()
             .expect("Failed to build client");
 
-        let config = Config::default();
+        self.client = client;
 
-        Ok(Self { client, config: Arc::new(RwLock::new(config)) })
+        Ok(self.clone())
 
     }
 
