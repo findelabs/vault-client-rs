@@ -192,8 +192,6 @@ impl Client {
         config.token_expires = token_expires;
         config.jwt_token = jwt_token;
 
-        drop(config);
-
         Ok(())
     }
 

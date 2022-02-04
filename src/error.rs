@@ -6,7 +6,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum VaultError {
     LoginError,
 }
