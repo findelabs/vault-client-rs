@@ -142,7 +142,7 @@ impl Client {
             HeaderValue::from_str("application/json").unwrap(),
         );
         headers.insert(
-            HeaderName::from_static("X-Vault-Token"),
+            HeaderName::from_static("x-vault-token"),
             HeaderValue::from_str(&config.token).unwrap(),
         );
 
