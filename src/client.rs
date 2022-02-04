@@ -192,8 +192,8 @@ impl Client {
 
         let body: Value = response.json().await?;
 
-        let token_expires = Utc::now().timestamp() + body["lease_duration"].as_i64().unwrap_or(0);
-        let token = body["client_token"].as_str().unwrap_or("error").to_string();
+        let token_expires = Utc::now().timestamp() + body["auth"]["lease_duration"].as_i64().unwrap_or(0);
+        let token = body["auth"]["client_token"].as_str().unwrap_or("error").to_string();
 
         match token == config.token {
             true => log::info!("client_token is the same as before..."),
