@@ -164,14 +164,14 @@ impl Client {
         Ok(headers)
     }
 
-    pub async fn login(&mut self) -> BoxResult<Self> {
+    pub async fn login(&mut self) -> BoxResult<()> {
         // Check out config
         let mut config = self.config.write().expect("Failed getting write access to config");
 
 		let jwt_token = std::fs::read_to_string(&config.jwt_path).expect("Unable to read jwt token");
 
         let data = format!("{{\"role\": \"{}\", \"jwt\": \"{}\"}}", config.vault_role, jwt_token);
-        let uri = format!("{}/{}/login", config.vault_url.clone(), config.vault_login_path);
+        let uri = format!("{}/{}/login", config.vault_url, config.vault_login_path);
 
         log::debug!("Using body: {}", data);
 
@@ -209,7 +209,7 @@ impl Client {
 
         drop(config);
 
-        Ok(self.clone())
+        Ok(())
     }
 
     // Return back the time in UTC that the cookie will expire
@@ -221,9 +221,9 @@ impl Client {
         Ok(newdate.to_string())
     }
 
-    async fn token_expires(&self) -> BoxResult<i64> {
+    async fn token_expires(&self) -> i64 {
         let config = self.config.read().expect("Failed reading config");
-        Ok(config.token_expires)
+        config.token_expires
     }
 
     async fn vault_url(&self) -> String {
@@ -232,7 +232,7 @@ impl Client {
     }
 
     async fn renew(&mut self) -> BoxResult<()> {
-        if self.token_expires().await? - Utc::now().timestamp() <= 0 {
+        if self.token_expires().await - Utc::now().timestamp() <= 0 {
             log::info!("token has expired, kicking off re-login function");
             self.login().await?;
         } else {
