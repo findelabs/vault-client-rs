@@ -7,7 +7,7 @@ use chrono::DateTime;
 use serde_json::{Value, Map};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 use crate::error::*;
 
 type BoxResult<T> = Result<T,Box<dyn Error + Send + Sync>>;
@@ -35,13 +35,13 @@ pub struct Config {
 	insecure: bool
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[allow(dead_code)]
 pub struct SecretData {
     data: Map<String, Value>
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[allow(dead_code)]
 pub struct SecretMetadata{
     created_time: String,
@@ -52,7 +52,7 @@ pub struct SecretMetadata{
     version: u64
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[allow(dead_code)]
 pub struct VaultSecret {
     data: SecretData,
