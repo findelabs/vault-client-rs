@@ -7,6 +7,7 @@ use chrono::DateTime;
 use serde_json::{Value, Map};
 use std::sync::{Arc, RwLock};
 use serde::Deserialize;
+use crate::error::*;
 
 type BoxResult<T> = Result<T,Box<dyn Error + Send + Sync>>;
 
@@ -149,7 +150,7 @@ impl Client {
         Ok(headers)
     }
 
-    pub async fn login(&mut self) -> BoxResult<String> {
+    pub async fn login(&mut self) -> BoxResult<&mut Self> {
         // Check out config
         let mut config = self.config.write().expect("Failed getting write access to config");
 
@@ -169,7 +170,7 @@ impl Client {
             reqwest::StatusCode::OK => log::info!("Successfully logged in to {}", config.vault_url),
             _ => {
                 log::error!("Error logging in to controller: {}", response.status());
-                return Ok("Error logging in to controller".to_owned());
+                return Err(Box::new(VaultError::LoginError))
             }
         };
 
@@ -190,7 +191,9 @@ impl Client {
         config.token_expires = token_expires;
         config.jwt_token = jwt_token;
 
-        Ok(config.token_expires.to_string())
+        drop(config);
+
+        Ok(self)
     }
 
     // Return back the time in UTC that the cookie will expire

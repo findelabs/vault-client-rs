@@ -1,4 +1,5 @@
 pub mod client;
+pub mod error;
 
 #[cfg(test)]
 mod client_tests {
