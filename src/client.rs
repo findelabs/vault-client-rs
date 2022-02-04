@@ -173,6 +173,8 @@ impl Client {
         let data = format!("{{\"role\": \"{}\", \"jwt\": \"{}\"}}", config.vault_role, jwt_token);
         let uri = format!("{}/{}/login", config.vault_url.clone(), config.vault_login_path);
 
+        log::debug!("Using body: {}", data);
+
         let response = self.client
             .clone()
             .post(uri)
