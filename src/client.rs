@@ -11,8 +11,6 @@ use crate::error::*;
 
 type BoxResult<T> = Result<T,Box<dyn Error + Send + Sync>>;
 
-const VAULT_AUTH: &'static str = "v1/auth/kubernetes/login";
-
 #[derive(Debug, Clone, Default)]
 pub struct Client {
     client: reqwest::Client,
@@ -23,6 +21,9 @@ pub struct Client {
 pub struct Config {
 	vault_role: String,
 	vault_url: String,
+
+    #[serde(default = "default_resource")]
+    vault_login_path: String,
 	jwt_path: String,
     jwt_token: String,
     token: String,
@@ -54,6 +55,12 @@ pub struct VaultSecret {
     metadata: SecretMetadata
 }
 
+// Return default vault kubernetes login path
+fn default_resource() -> String {
+    "v1/auth/kubernetes".to_string()
+}
+
+
 impl VaultSecret {
     pub async fn data(self) -> SecretData {
         self.data
@@ -71,6 +78,13 @@ impl Client {
     pub fn with_vault_url(&mut self, vault_url: &str) -> &mut Self {
         let mut config = self.config.write().expect("Failed getting write access to config");
         config.vault_url = vault_url.to_string();
+        drop(config);
+        self
+    }
+    
+    pub fn with_vault_login_path(&mut self, vault_login_path: &str) -> &mut Self {
+        let mut config = self.config.write().expect("Failed getting write access to config");
+        config.vault_login_path = vault_login_path.to_string();
         drop(config);
         self
     }
@@ -157,7 +171,7 @@ impl Client {
 		let jwt_token = std::fs::read_to_string(&config.jwt_path).expect("Unable to read jwt token");
 
         let data = format!("{{\"role\": \"{}\", \"jwt\": \"{}\"}}", config.vault_role, jwt_token);
-        let uri = format!("{}/{}", config.vault_url.clone(), VAULT_AUTH);
+        let uri = format!("{}/{}/login", config.vault_url.clone(), config.vault_login_path);
 
         let response = self.client
             .clone()
