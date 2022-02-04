@@ -215,7 +215,7 @@ impl Client {
 
     async fn token_expires(&self) -> i64 {
         let config = self.config.read().expect("Failed reading config");
-        config.token_expires
+        config.token_expires.clone()
     }
 
     async fn vault_url(&self) -> String {
