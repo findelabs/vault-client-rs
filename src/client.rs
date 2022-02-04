@@ -150,7 +150,7 @@ impl Client {
         Ok(headers)
     }
 
-    pub async fn login(&mut self) -> BoxResult<&mut Self> {
+    pub async fn login(&mut self) -> BoxResult<Self> {
         // Check out config
         let mut config = self.config.write().expect("Failed getting write access to config");
 
@@ -193,7 +193,7 @@ impl Client {
 
         drop(config);
 
-        Ok(self)
+        Ok(self.clone())
     }
 
     // Return back the time in UTC that the cookie will expire
