@@ -17,12 +17,10 @@ pub struct Client {
     config: Arc<RwLock<Config>>
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default)]
 pub struct Config {
 	vault_role: String,
 	vault_url: String,
-
-    #[serde(default = "default_resource")]
     vault_login_path: String,
 	jwt_path: String,
     jwt_token: String,
@@ -54,12 +52,6 @@ pub struct VaultSecret {
     data: SecretData,
     metadata: SecretMetadata
 }
-
-// Return default vault kubernetes login path
-fn default_resource() -> String {
-    "v1/auth/kubernetes".to_string()
-}
-
 
 impl VaultSecret {
     pub async fn data(self) -> SecretData {
