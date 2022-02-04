@@ -5,7 +5,8 @@ use chrono::offset::Utc;
 use chrono::NaiveDateTime;
 use chrono::DateTime;
 use serde_json::{Value, Map};
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use serde::Deserialize;
 use crate::error::*;
 
@@ -128,7 +129,7 @@ impl Client {
     }
 
     pub async fn headers(&self) -> BoxResult<HeaderMap> {
-        let config = self.config.read().expect("Failed reading config");
+        let config = self.config.read().await;
 
         // Create HeaderMap
         let mut headers = HeaderMap::new();
@@ -151,7 +152,7 @@ impl Client {
 
     pub async fn login(&mut self) -> BoxResult<()> {
         // Check out config
-        let mut config = self.config.write().expect("Failed getting write access to config");
+        let mut config = self.config.write().await;
 
 		let jwt_token = std::fs::read_to_string(&config.jwt_path).expect("Unable to read jwt token");
 
@@ -196,8 +197,8 @@ impl Client {
     }
 
     // Return back the time in UTC that the cookie will expire
-    pub fn expires(&self) -> BoxResult<String> {
-        let config = self.config.read().expect("Failed reading config");
+    pub async fn expires(&self) -> BoxResult<String> {
+        let config = self.config.read().await;
         let naive = NaiveDateTime::from_timestamp(config.token_expires, 0);
         let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
         let newdate = datetime.format("%Y-%m-%d %H:%M:%S");
@@ -205,12 +206,12 @@ impl Client {
     }
 
     async fn token_expires(&self) -> i64 {
-        let config = self.config.read().expect("Failed reading config");
+        let config = self.config.read().await;
         config.token_expires.clone()
     }
 
     async fn vault_url(&self) -> String {
-        let config = self.config.read().expect("Failed reading config");
+        let config = self.config.read().await;
         config.vault_url.clone()
     }
 
