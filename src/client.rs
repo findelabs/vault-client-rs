@@ -18,6 +18,11 @@ pub struct Client {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct ClientBuilder {
+    config: Config
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct Config {
 	vault_role: String,
 	vault_url: String,
@@ -59,65 +64,53 @@ impl VaultSecret {
     }
 }
 
-impl Client {
-    pub fn with_vault_role(&mut self, vault_role: &str) -> &mut Self {
-        let mut config = self.config.write().expect("Failed getting write access to config");
-        config.vault_role = vault_role.to_string();
-        drop(config);
+impl ClientBuilder {
+    pub fn with_vault_role(mut self, vault_role: &str) -> Self {
+        self.config.vault_role = vault_role.to_string();
         self
     }
     
-    pub fn with_vault_url(&mut self, vault_url: &str) -> &mut Self {
-        let mut config = self.config.write().expect("Failed getting write access to config");
-        config.vault_url = vault_url.to_string();
-        drop(config);
+    pub fn with_vault_url(mut self, vault_url: &str) -> Self {
+        self.config.vault_url = vault_url.to_string();
         self
     }
     
-    pub fn with_vault_login_path(&mut self, vault_login_path: &str) -> &mut Self {
-        let mut config = self.config.write().expect("Failed getting write access to config");
-        config.vault_login_path = vault_login_path.to_string();
-        drop(config);
+    pub fn with_vault_login_path(mut self, vault_login_path: &str) -> Self {
+        self.config.vault_login_path = vault_login_path.to_string();
         self
     }
     
-    pub fn with_jwt_path(&mut self, jwt_path: &str) -> &mut Self {
-        let mut config = self.config.write().expect("Failed getting write access to config");
-        config.jwt_path = jwt_path.to_string();
-        drop(config);
+    pub fn with_jwt_path(mut self, jwt_path: &str) -> Self {
+        self.config.jwt_path = jwt_path.to_string();
         self
     }
     
-    pub fn insecure(&mut self, insecure: bool) -> &mut Self {
-        let mut config = self.config.write().expect("Failed getting write access to config");
-        config.insecure= insecure;
-        drop(config);
+    pub fn insecure(mut self, insecure: bool) -> Self {
+        self.config.insecure= insecure;
         self
     }
 
     pub fn new() -> Self {
-        let client = reqwest::Client::default();
         let config = Config::default();
 
-        Self { client, config: Arc::new(RwLock::new(config)) }
+        Self { config }
 
     }
 
     pub fn build(&mut self) -> BoxResult<Client> {
-        let config = self.config.read().expect("Failed getting write access to config");
 
         let client = reqwest::Client::builder()
             .timeout(Duration::new(60, 0))
-            .danger_accept_invalid_certs(config.insecure)
+            .danger_accept_invalid_certs(self.config.insecure)
             .build()
             .expect("Failed to build client");
 
-        self.client = client;
-
-        Ok(self.clone())
+        Ok(Client{ client, config: Arc::new(RwLock::new(self.config.clone())) })
 
     }
+}
 
+impl Client {
     pub async fn get(&mut self, path: &str) -> BoxResult<VaultSecret> {
         self.renew().await?;
         let uri = format!("{}{}", self.vault_url().await, path);
