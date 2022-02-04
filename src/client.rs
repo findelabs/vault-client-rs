@@ -14,7 +14,7 @@ const VAULT_AUTH: &'static str = "v1/auth/kubernetes/login";
 
 #[derive(Debug, Clone, Default)]
 pub struct Client {
-    client: Arc<reqwest::Client>,
+    client: reqwest::Client,
     config: Arc<RwLock<Config>>
 }
 
@@ -92,7 +92,7 @@ impl Client {
         let client = reqwest::Client::default();
         let config = Config::default();
 
-        Self { client: Arc::new(client), config: Arc::new(RwLock::new(config)) }
+        Self { client, config: Arc::new(RwLock::new(config)) }
 
     }
 
@@ -105,7 +105,7 @@ impl Client {
             .build()
             .expect("Failed to build client");
 
-        self.client = Arc::new(client);
+        self.client = client;
 
         Ok(self.clone())
 
@@ -159,6 +159,7 @@ impl Client {
         let uri = format!("{}/{}", config.vault_url.clone(), VAULT_AUTH);
 
         let response = self.client
+            .clone()
             .post(uri)
             .body(data)
             .send()
