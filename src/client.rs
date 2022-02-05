@@ -116,15 +116,23 @@ impl Client {
         self.renew().await?;
         let uri = format!("{}/{}", self.vault_url().await, path);
         log::debug!("Getting json output from {}", &uri);
+
         let response = self.client
             .get(uri)
             .headers(self.headers().await?)
             .send()
             .await?;
-
-        match response.json().await {
-            Ok(t) => Ok(t),
-            Err(e) => Err(Box::new(e))
+ 
+        match response.status().as_u16() {
+            404 => Err(Box::new(VaultError::NotFound)),
+            401 => Err(Box::new(VaultError::Forbidden)),
+            200 => {
+                match response.json().await {
+                    Ok(t) => Ok(t),
+                    Err(e) => Err(Box::new(e))
+                }
+            },
+            _ => Err(Box::new(VaultError::UnkError))
         }
     }
 
