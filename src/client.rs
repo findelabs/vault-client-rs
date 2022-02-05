@@ -127,21 +127,21 @@ impl Client {
     pub async fn get(&mut self, path: &str) -> BoxResult<VaultSecret> {
         self.renew().await?;
         let uri = format!("{}/v1/{}", self.vault_url().await, path);
-        log::debug!("Getting json output from {}", &uri);
+        log::debug!("Attempting to get {}", &uri);
 
         let response = self.client
             .get(uri)
             .headers(self.headers().await?)
             .send()
             .await?;
- 
+
         match response.status().as_u16() {
             404 => Err(Box::new(VaultError::NotFound)),
             401 => Err(Box::new(VaultError::Forbidden)),
             200 => {
                 match response.json().await {
                     Ok(t) => {
-                        log::debug!("{:?}", &t);
+                        log::info!("{:?}", &t);
                         Ok(t)
                     },
                     Err(e) => Err(Box::new(e))
