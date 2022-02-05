@@ -37,12 +37,6 @@ pub struct Config {
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[allow(dead_code)]
-pub struct SecretDataData {
-    data: Map<String, Value>
-}
-
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
-#[allow(dead_code)]
 pub struct SecretMetadata{
     created_time: String,
     #[serde(default)]
@@ -55,7 +49,7 @@ pub struct SecretMetadata{
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[allow(dead_code)]
 pub struct VaultSecretData {
-    data: SecretDataData,
+    data: Map<String, Value>,
     metadata: SecretMetadata
 }
 
