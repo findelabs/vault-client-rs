@@ -106,7 +106,6 @@ impl ClientBuilder {
 
     pub fn new() -> Self {
         let config = Config::default();
-
         Self { config }
 
     }
@@ -141,7 +140,10 @@ impl Client {
             401 => Err(Box::new(VaultError::Forbidden)),
             200 => {
                 match response.json().await {
-                    Ok(t) => Ok(t),
+                    Ok(t) => {
+                        log::debug!("{:?}", &t);
+                        Ok(t)
+                    },
                     Err(e) => Err(Box::new(e))
                 }
             },
