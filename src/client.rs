@@ -114,7 +114,7 @@ impl ClientBuilder {
 impl Client {
     pub async fn get(&mut self, path: &str) -> BoxResult<VaultSecret> {
         self.renew().await?;
-        let uri = format!("{}{}", self.vault_url().await, path);
+        let uri = format!("{}/{}", self.vault_url().await, path);
         log::debug!("Getting json output from {}", &uri);
         let response = self.client
             .get(uri)
