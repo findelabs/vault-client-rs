@@ -37,7 +37,7 @@ pub struct Config {
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[allow(dead_code)]
-pub struct SecretMetadata{
+pub struct Metadata{
     created_time: String,
     #[serde(default)]
     custom_metadata: Value,
@@ -48,14 +48,14 @@ pub struct SecretMetadata{
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[allow(dead_code)]
-pub struct VaultSecretData {
+pub struct SecretData {
     data: Map<String, Value>,
-    metadata: SecretMetadata
+    metadata: Metadata
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[allow(dead_code)]
-pub struct VaultSecret {
+pub struct Secret {
     request_id: String,
     lease_id: String,
     renewable: bool,
@@ -63,15 +63,15 @@ pub struct VaultSecret {
     wrap_info: Value,
     warnings: Value,
     auth: Value,
-    data: VaultSecretData,
+    data: SecretData,
 }
 
-impl VaultSecret {
+impl Secret {
     pub async fn data(self) -> Map<String, Value> {
         self.data.data
     }
 
-    pub async fn metadata(self) -> SecretMetadata {
+    pub async fn metadata(self) -> Metadata {
         self.data.metadata
     }
 }
@@ -122,7 +122,7 @@ impl ClientBuilder {
 }
 
 impl Client {
-    pub async fn get(&mut self, path: &str) -> BoxResult<VaultSecret> {
+    pub async fn get(&mut self, path: &str) -> BoxResult<Secret> {
         self.renew().await?;
         let uri = format!("{}/v1/{}", self.vault_url().await, path);
         log::debug!("Attempting to get {}", &uri);
