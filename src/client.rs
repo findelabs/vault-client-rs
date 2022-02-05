@@ -67,8 +67,12 @@ pub struct VaultSecret {
 }
 
 impl VaultSecret {
-    pub async fn data(self) -> VaultSecretData {
-        self.data
+    pub async fn data(self) -> Map<String, Value> {
+        self.data.data
+    }
+
+    pub async fn metadata(self) -> SecretMetadata {
+        self.data.metadata
     }
 }
 
