@@ -135,10 +135,13 @@ impl Client {
             200 => {
                 match response.json().await {
                     Ok(t) => {
-                        log::info!("{:?}", &t);
+                        log::debug!("{:?}", &t);
                         Ok(t)
                     },
-                    Err(e) => Err(Box::new(e))
+                    Err(e) => {
+                        log::error!("Unable to parse secret");
+                        Err(Box::new(e))
+                    }
                 }
             },
             _ => Err(Box::new(VaultError::UnkError))
