@@ -37,7 +37,7 @@ pub struct Config {
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[allow(dead_code)]
-pub struct SecretData {
+pub struct SecretDataData {
     data: Map<String, Value>
 }
 
@@ -54,13 +54,26 @@ pub struct SecretMetadata{
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[allow(dead_code)]
-pub struct VaultSecret {
-    data: SecretData,
+pub struct VaultSecretData {
+    data: SecretDataData,
     metadata: SecretMetadata
 }
 
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[allow(dead_code)]
+pub struct VaultSecret {
+    request_id: String,
+    lease_id: String,
+    renewable: bool,
+    lease_duration: u32,
+    wrap_info: Value,
+    warnings: Value,
+    auth: Value,
+    data: VaultSecretData,
+}
+
 impl VaultSecret {
-    pub async fn data(self) -> SecretData {
+    pub async fn data(self) -> VaultSecretData {
         self.data
     }
 }
