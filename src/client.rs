@@ -82,6 +82,12 @@ pub struct ListData {
     keys: Vec<Value>
 }
 
+impl List {
+    pub async fn keys(self) -> Vec<Value> {
+        self.data.keys
+    }
+}
+
 impl Secret {
     pub async fn data(self) -> Map<String, Value> {
         self.data.data
