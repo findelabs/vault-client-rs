@@ -210,7 +210,7 @@ impl Client {
 
         let mut vec = Vec::new();
         for key in keys {
-            let secret_path = format!("{}/{}", path, key);
+            let secret_path = format!("{}{}", path, key.as_str().expect("Could not extract string"));
             log::debug!("Attempting to get {}", secret_path);
             let secret = self.get(&secret_path).await?;
             vec.push(secret)
