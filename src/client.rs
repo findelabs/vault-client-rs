@@ -181,7 +181,7 @@ impl Client {
         let response = self.client
             .get(uri)
             .headers(self.headers().await?)
-            .query(&[("query", "list")])
+            .query(&[("list", "true")])
             .send()
             .await?;
 
