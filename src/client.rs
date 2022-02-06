@@ -66,6 +66,21 @@ pub struct Secret {
     data: SecretData,
 }
 
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[allow(dead_code)]
+pub struct List {
+    lease_id: String,
+    lease_duration: u32,
+    auth: Value,
+    data: ListData,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[allow(dead_code)]
+pub struct ListData {
+    keys: Vec<Value>
+}
+
 impl Secret {
     pub async fn data(self) -> Map<String, Value> {
         self.data.data
@@ -150,6 +165,50 @@ impl Client {
             },
             _ => Err(Box::new(VaultError::UnkError))
         }
+    }
+
+    pub async fn list(&mut self, path: &str) -> BoxResult<List> {
+        self.renew().await?;
+        let uri = format!("{}/v1/{}", self.vault_url().await, path);
+        log::debug!("Attempting to list {}", &uri);
+
+        let response = self.client
+            .get(uri)
+            .headers(self.headers().await?)
+            .query(&[("query", "list")])
+            .send()
+            .await?;
+
+        match response.status().as_u16() {
+            404 => Err(Box::new(VaultError::NotFound)),
+            401 => Err(Box::new(VaultError::Forbidden)),
+            200 => {
+                match response.json().await {
+                    Ok(t) => {
+                        log::debug!("{:?}", &t);
+                        Ok(t)
+                    },
+                    Err(e) => {
+                        log::error!("Unable to parse list");
+                        Err(Box::new(e))
+                    }
+                }
+            },
+            _ => Err(Box::new(VaultError::UnkError))
+        }
+    }
+
+    pub async fn list_secrets(&mut self, path: &str) -> BoxResult<Vec<Secret>> {
+        let list = self.list(path).await?;
+        let keys = list.data.keys;
+
+        let mut vec = Vec::new();
+        for key in keys {
+            let secret_path = format!("{}/{}", path, key);
+            let secret = self.get(&secret_path).await?;
+            vec.push(secret)
+        }
+        Ok(vec)
     }
 
     pub async fn headers(&self) -> BoxResult<HeaderMap> {
