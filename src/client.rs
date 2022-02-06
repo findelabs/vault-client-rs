@@ -205,6 +205,7 @@ impl Client {
         let mut vec = Vec::new();
         for key in keys {
             let secret_path = format!("{}/{}", path, key);
+            log::debug!("Attempting to get {}", secret_path);
             let secret = self.get(&secret_path).await?;
             vec.push(secret)
         }
