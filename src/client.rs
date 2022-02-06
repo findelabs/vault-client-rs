@@ -27,6 +27,7 @@ pub struct ClientBuilder {
 pub struct Config {
 	vault_role: String,
 	vault_url: String,
+    vault_mount: String,
     vault_login_path: String,
 	jwt_path: String,
     jwt_token: String,
@@ -102,6 +103,11 @@ impl ClientBuilder {
         self
     }
     
+    pub fn with_vault_mount(mut self, vault_mount: &str) -> Self {
+        self.config.vault_mount = vault_mount.to_string();
+        self
+    }
+    
     pub fn with_vault_login_path(mut self, vault_login_path: &str) -> Self {
         self.config.vault_login_path = vault_login_path.to_string();
         self
@@ -139,7 +145,7 @@ impl ClientBuilder {
 impl Client {
     pub async fn get(&mut self, path: &str) -> BoxResult<Secret> {
         self.renew().await?;
-        let uri = format!("{}/v1/{}", self.vault_url().await, path);
+        let uri = format!("{}/v1/{}/data/{}", self.vault_url().await, self.vault_mount().await, path);
         log::debug!("Attempting to get {}", &uri);
 
         let response = self.client
@@ -169,7 +175,7 @@ impl Client {
 
     pub async fn list(&mut self, path: &str) -> BoxResult<List> {
         self.renew().await?;
-        let uri = format!("{}/v1/{}", self.vault_url().await, path);
+        let uri = format!("{}/v1/{}/metadata/{}", self.vault_url().await, self.vault_mount().await, path);
         log::debug!("Attempting to list {}", &uri);
 
         let response = self.client
@@ -297,6 +303,11 @@ impl Client {
     async fn vault_url(&self) -> String {
         let config = self.config.read().await;
         config.vault_url.clone()
+    }
+
+    async fn vault_mount(&self) -> String {
+        let config = self.config.read().await;
+        config.vault_mount.clone()
     }
 
     async fn renew(&mut self) -> BoxResult<()> {
