@@ -5,14 +5,17 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use reqwest::Error as ReqwestError;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum VaultError {
     LoginError,
     Forbidden,
     NotFound,
-    UnkError
+    UnkError,
+    ReqwestError(ReqwestError)
 }
+
 
 impl std::error::Error for VaultError {}
 
@@ -23,6 +26,7 @@ impl fmt::Display for VaultError {
             VaultError::Forbidden=> f.write_str("Forbidden to read"),
             VaultError::NotFound=> f.write_str("Secret not found"),
             VaultError::UnkError=> f.write_str("Returned bad status code"),
+            VaultError::ReqwestError(ref e) => write!(f, "Reqwest error: {}", e),
         }
     }
 }
@@ -38,3 +42,10 @@ impl IntoResponse for VaultError {
             .unwrap()
     }
 }
+
+impl From<ReqwestError> for VaultError {
+    fn from(err: ReqwestError) -> VaultError {
+        VaultError::ReqwestError(err)
+    }
+}
+
