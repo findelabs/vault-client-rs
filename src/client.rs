@@ -149,7 +149,7 @@ impl ClientBuilder {
 }
 
 impl Client {
-    pub async fn get(&mut self, path: &str) -> BoxResult<Secret> {
+    pub async fn get(&mut self, path: &str) -> Result<Secret, VaultError> {
         self.renew().await?;
         let uri = format!("{}/v1/{}/data/{}", self.vault_url().await, self.vault_mount().await, path);
         log::debug!("Attempting to get {}", &uri);
@@ -161,25 +161,16 @@ impl Client {
             .await?;
 
         match response.status().as_u16() {
-            404 => Err(Box::new(VaultError::NotFound)),
-            401 => Err(Box::new(VaultError::Forbidden)),
+            404 => Err(VaultError::NotFound),
+            401 => Err(VaultError::Forbidden),
             200 => {
-                match response.json().await {
-                    Ok(t) => {
-                        log::debug!("{:?}", &t);
-                        Ok(t)
-                    },
-                    Err(e) => {
-                        log::error!("Unable to parse secret");
-                        Err(Box::new(e))
-                    }
-                }
+                Ok(response.json().await?)
             },
-            _ => Err(Box::new(VaultError::UnkError))
+            _ => Err(VaultError::UnkError)
         }
     }
 
-    pub async fn list(&mut self, path: &str) -> BoxResult<List> {
+    pub async fn list(&mut self, path: &str) -> Result<List, VaultError> {
         self.renew().await?;
         let uri = format!("{}/v1/{}/metadata/{}", self.vault_url().await, self.vault_mount().await, path);
         log::debug!("Attempting to list {}", &uri);
@@ -192,21 +183,12 @@ impl Client {
             .await?;
 
         match response.status().as_u16() {
-            404 => Err(Box::new(VaultError::NotFound)),
-            401 => Err(Box::new(VaultError::Forbidden)),
+            404 => Err(VaultError::NotFound),
+            401 => Err(VaultError::Forbidden),
             200 => {
-                match response.json().await {
-                    Ok(t) => {
-                        log::debug!("{:?}", &t);
-                        Ok(t)
-                    },
-                    Err(e) => {
-                        log::error!("Unable to parse list");
-                        Err(Box::new(e))
-                    }
-                }
+                Ok(response.json().await?)
             },
-            _ => Err(Box::new(VaultError::UnkError))
+            _ => Err(VaultError::UnkError)
         }
     }
 
@@ -224,7 +206,7 @@ impl Client {
         Ok(vec)
     }
 
-    pub async fn headers(&self) -> BoxResult<HeaderMap> {
+    pub async fn headers(&self) -> Result<HeaderMap, VaultError> {
         let config = self.config.read().await;
 
         // Create HeaderMap
@@ -246,7 +228,7 @@ impl Client {
         Ok(headers)
     }
 
-    pub async fn login(&mut self) -> BoxResult<()> {
+    pub async fn login(&mut self) -> Result<(), VaultError> {
         // Check out config
         let mut config = self.config.write().await;
 
@@ -268,7 +250,7 @@ impl Client {
             reqwest::StatusCode::OK => log::info!("Successfully logged in to {}", config.vault_url),
             _ => {
                 log::error!("Error logging in to controller: {}", response.status());
-                return Err(Box::new(VaultError::LoginError))
+                return Err(VaultError::LoginError)
             }
         };
 
@@ -316,7 +298,7 @@ impl Client {
         config.vault_mount.clone()
     }
 
-    async fn renew(&mut self) -> BoxResult<()> {
+    async fn renew(&mut self) -> Result<(), VaultError> {
         if self.token_expires().await - Utc::now().timestamp() <= 0 {
             log::info!("token has expired, kicking off re-login function");
             self.login().await?;

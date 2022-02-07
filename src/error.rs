@@ -5,7 +5,6 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use reqwest::Error as ReqwestError;
 
 #[derive(Debug)]
 pub enum VaultError {
@@ -13,7 +12,7 @@ pub enum VaultError {
     Forbidden,
     NotFound,
     UnkError,
-    ReqwestError(ReqwestError)
+    ReqwestError(reqwest::Error)
 }
 
 
@@ -43,8 +42,8 @@ impl IntoResponse for VaultError {
     }
 }
 
-impl From<ReqwestError> for VaultError {
-    fn from(err: ReqwestError) -> VaultError {
+impl From<reqwest::Error> for VaultError {
+    fn from(err: reqwest::Error) -> VaultError {
         VaultError::ReqwestError(err)
     }
 }
