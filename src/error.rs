@@ -23,8 +23,8 @@ impl fmt::Display for VaultError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             VaultError::LoginError => f.write_str("Error logging in to vault"),
-            VaultError::Forbidden=> f.write_str("Forbidden to read"),
-            VaultError::Unauthorized=> f.write_str("Unauthorized"),
+            VaultError::Forbidden=> f.write_str("Forbidden to read secret"),
+            VaultError::Unauthorized=> f.write_str("Unauthorized to read secret"),
             VaultError::NotFound=> f.write_str("Secret not found"),
             VaultError::UnkError=> f.write_str("Returned bad status code"),
             VaultError::ReqwestError(ref e) => write!(f, "Reqwest error: {}", e),
