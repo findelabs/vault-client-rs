@@ -25,10 +25,10 @@ pub struct ClientBuilder {
 
 #[derive(Debug, Clone, Default)]
 pub struct Config {
-	vault_url: String,
-	vault_kubernetes_role: Option<String>,
-    vault_mount: String,
-    vault_login_path: String,
+	url: String,
+	kubernetes_role: Option<String>,
+    mount: String,
+    login_path: String,
 	jwt_path: Option<String>,
     role_id: Option<String>,
     secret_id: Option<String>,
@@ -100,24 +100,24 @@ impl Secret {
 }
 
 impl ClientBuilder {
-    pub fn with_vault_kubernetes_role(mut self, arg: Option<&str>) -> Self {
+    pub fn with_kubernetes_role(mut self, arg: Option<&str>) -> Self {
         let f: Option<String> = arg.map(String::from);
-        self.config.vault_kubernetes_role = f;
+        self.config.kubernetes_role = f;
         self
     }
     
-    pub fn with_vault_url(mut self, arg: &str) -> Self {
-        self.config.vault_url = arg.to_string();
+    pub fn with_url(mut self, arg: &str) -> Self {
+        self.config.url = arg.to_string();
         self
     }
     
-    pub fn with_vault_mount(mut self, arg: &str) -> Self {
-        self.config.vault_mount = arg.to_string();
+    pub fn with_mount(mut self, arg: &str) -> Self {
+        self.config.mount = arg.to_string();
         self
     }
     
-    pub fn with_vault_login_path(mut self, arg: &str) -> Self {
-        self.config.vault_login_path = arg.to_string();
+    pub fn with_login_path(mut self, arg: &str) -> Self {
+        self.config.login_path = arg.to_string();
         self
     }
 
@@ -176,7 +176,7 @@ impl ClientBuilder {
 impl Client {
     pub async fn get(&mut self, path: &str) -> Result<Secret, VaultError> {
         self.renew().await?;
-        let uri = format!("{}/v1/{}/data/{}", self.vault_url().await, self.vault_mount().await, path);
+        let uri = format!("{}/v1/{}/data/{}", self.url().await, self.mount().await, path);
         log::debug!("Attempting to get {}", &uri);
 
         let response = self.client
@@ -197,7 +197,7 @@ impl Client {
 
     pub async fn list(&mut self, path: &str) -> Result<List, VaultError> {
         self.renew().await?;
-        let uri = format!("{}/v1/{}/metadata/{}", self.vault_url().await, self.vault_mount().await, path);
+        let uri = format!("{}/v1/{}/metadata/{}", self.url().await, self.mount().await, path);
         log::debug!("Attempting to list {}", &uri);
 
         let response = self.client
@@ -259,7 +259,7 @@ impl Client {
 
         let data = if config.jwt_path.is_some() {
 		    let jwt_token = std::fs::read_to_string(&config.jwt_path.as_ref().unwrap()).expect("Unable to read jwt token");
-            let data = format!("{{\"role\": \"{}\", \"jwt\": \"{}\"}}", config.vault_kubernetes_role.as_ref().unwrap(), jwt_token);
+            let data = format!("{{\"role\": \"{}\", \"jwt\": \"{}\"}}", config.kubernetes_role.as_ref().unwrap(), jwt_token);
             data
         } else if config.role_id.is_some() {
             let data = format!("{{\"role_id\": \"{}\", \"secret_id\": \"{}\"}}", config.role_id.as_ref().unwrap(), config.secret_id.as_ref().unwrap());
@@ -268,7 +268,7 @@ impl Client {
             panic!("Unknown auth backend")
         };
 
-        let uri = format!("{}/v1/{}/login", config.vault_url, config.vault_login_path);
+        let uri = format!("{}/v1/{}/login", config.url, config.login_path);
 
         log::debug!("Using body: {}", data);
 
@@ -280,7 +280,7 @@ impl Client {
             .await?;
 
         match response.status() {
-            reqwest::StatusCode::OK => log::info!("Successfully logged in to {}", config.vault_url),
+            reqwest::StatusCode::OK => log::info!("Successfully logged in to {}", config.url),
             _ => {
                 log::error!("Error logging in to controller: {}", response.status());
                 return Err(VaultError::LoginError)
@@ -320,14 +320,14 @@ impl Client {
         config.token_expires.clone()
     }
 
-    async fn vault_url(&self) -> String {
+    async fn url(&self) -> String {
         let config = self.config.read().await;
-        config.vault_url.clone()
+        config.url.clone()
     }
 
-    async fn vault_mount(&self) -> String {
+    async fn mount(&self) -> String {
         let config = self.config.read().await;
-        config.vault_mount.clone()
+        config.mount.clone()
     }
 
     async fn renew(&mut self) -> Result<(), VaultError> {
