@@ -30,7 +30,9 @@ pub struct Config {
     vault_mount: String,
     vault_login_path: String,
 	jwt_path: String,
-    jwt_token: String,
+    role_id: String,
+    secret_id: String,
+    auth_backend: String,
     token: String,
     token_expires: i64,
 	insecure: bool
@@ -114,11 +116,16 @@ impl ClientBuilder {
         self
     }
     
-    pub fn with_vault_login_path(mut self, vault_login_path: &str) -> Self {
-        self.config.vault_login_path = vault_login_path.to_string();
+    pub fn with_role_id(mut self, role_id: &str) -> Self {
+        self.config.role_id = role_id.to_string();
         self
     }
     
+    pub fn with_secret_id(mut self, secret_id: &str) -> Self {
+        self.config.secret_id = secret_id.to_string();
+        self
+    }
+
     pub fn with_jwt_path(mut self, jwt_path: &str) -> Self {
         self.config.jwt_path = jwt_path.to_string();
         self
@@ -232,9 +239,19 @@ impl Client {
         // Check out config
         let mut config = self.config.write().await;
 
-		let jwt_token = std::fs::read_to_string(&config.jwt_path).expect("Unable to read jwt token");
+        let data = match config.auth_backend.as_str() {
+            "kubernetes" => {
+		        let jwt_token = std::fs::read_to_string(&config.jwt_path).expect("Unable to read jwt token");
+                let data = format!("{{\"role\": \"{}\", \"jwt\": \"{}\"}}", config.vault_role, jwt_token);
+                data
+            },
+            "approle" => {
+                let data = format!("{{\"role_id\": \"{}\", \"secret_id\": \"{}\"}}", config.role_id, config.secret_id);
+                data
+            },
+            _ => panic!("Unknown auth backend")
+        };
 
-        let data = format!("{{\"role\": \"{}\", \"jwt\": \"{}\"}}", config.vault_role, jwt_token);
         let uri = format!("{}/v1/{}/login", config.vault_url, config.vault_login_path);
 
         log::debug!("Using body: {}", data);
@@ -269,7 +286,6 @@ impl Client {
 
         // Update max_age for new token
         config.token_expires = token_expires;
-        config.jwt_token = jwt_token;
 
         Ok(())
     }
