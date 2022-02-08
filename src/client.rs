@@ -257,7 +257,7 @@ impl Client {
         // Check out config
         let mut config = self.config.write().await;
 
-        let data = if config.jwt_path.is_some() {
+        let data = if config.kubernetes_role.is_some() {
 		    let jwt_token = std::fs::read_to_string(&config.jwt_path.as_ref().unwrap()).expect("Unable to read jwt token");
             let data = format!("{{\"role\": \"{}\", \"jwt\": \"{}\"}}", config.kubernetes_role.as_ref().unwrap(), jwt_token);
             data
