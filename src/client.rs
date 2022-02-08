@@ -235,7 +235,7 @@ impl Client {
 		let jwt_token = std::fs::read_to_string(&config.jwt_path).expect("Unable to read jwt token");
 
         let data = format!("{{\"role\": \"{}\", \"jwt\": \"{}\"}}", config.vault_role, jwt_token);
-        let uri = format!("{}/{}/login", config.vault_url, config.vault_login_path);
+        let uri = format!("{}/v1/{}/login", config.vault_url, config.vault_login_path);
 
         log::debug!("Using body: {}", data);
 
