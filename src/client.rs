@@ -25,13 +25,13 @@ pub struct ClientBuilder {
 
 #[derive(Debug, Clone, Default)]
 pub struct Config {
-	vault_role: String,
 	vault_url: String,
+	vault_kubernetes_role: Option<String>,
     vault_mount: String,
     vault_login_path: String,
-	jwt_path: String,
-    role_id: String,
-    secret_id: String,
+	jwt_path: Option<String>,
+    role_id: Option<String>,
+    secret_id: Option<String>,
     token: String,
     token_expires: i64,
 	insecure: bool
@@ -100,43 +100,47 @@ impl Secret {
 }
 
 impl ClientBuilder {
-    pub fn with_vault_role(mut self, vault_role: &str) -> Self {
-        self.config.vault_role = vault_role.to_string();
+    pub fn with_vault_kubernetes_role(mut self, arg: Option<&str>) -> Self {
+        let f: Option<String> = arg.map(String::from);
+        self.config.vault_kubernetes_role = f;
         self
     }
     
-    pub fn with_vault_url(mut self, vault_url: &str) -> Self {
-        self.config.vault_url = vault_url.to_string();
+    pub fn with_vault_url(mut self, arg: &str) -> Self {
+        self.config.vault_url = arg.to_string();
         self
     }
     
-    pub fn with_vault_mount(mut self, vault_mount: &str) -> Self {
-        self.config.vault_mount = vault_mount.to_string();
+    pub fn with_vault_mount(mut self, arg: &str) -> Self {
+        self.config.vault_mount = arg.to_string();
         self
     }
     
-    pub fn with_vault_login_path(mut self, vault_login_path: &str) -> Self {
-        self.config.vault_login_path = vault_login_path.to_string();
+    pub fn with_vault_login_path(mut self, arg: &str) -> Self {
+        self.config.vault_login_path = arg.to_string();
         self
     }
 
-    pub fn with_role_id(mut self, role_id: &str) -> Self {
-        self.config.role_id = role_id.to_string();
+    pub fn with_role_id(mut self, arg: Option<&str>) -> Self {
+        let f: Option<String> = arg.map(String::from);
+        self.config.role_id = f;
         self
     }
     
-    pub fn with_secret_id(mut self, secret_id: &str) -> Self {
-        self.config.secret_id = secret_id.to_string();
+    pub fn with_secret_id(mut self, arg: Option<&str>) -> Self {
+        let f: Option<String> = arg.map(String::from);
+        self.config.secret_id = f;
         self
     }
 
-    pub fn with_jwt_path(mut self, jwt_path: &str) -> Self {
-        self.config.jwt_path = jwt_path.to_string();
+    pub fn with_jwt_path(mut self, arg: Option<&str>) -> Self {
+        let f: Option<String> = arg.map(String::from);
+        self.config.jwt_path = f;
         self
     }
     
     pub fn insecure(mut self, insecure: bool) -> Self {
-        self.config.insecure= insecure;
+        self.config.insecure = insecure;
         self
     }
 
@@ -148,6 +152,17 @@ impl ClientBuilder {
 
     pub fn build(&mut self) -> BoxResult<Client> {
 
+        // Ensure role_id and secret_id both exist together
+        if self.config.role_id.is_some() && self.config.secret_id.is_none() {
+            panic!("Missing secret_id");
+        } else if self.config.secret_id.is_some() && self.config.role_id.is_none() {
+            panic!("Missing role_id");
+        };
+
+        if self.config.role_id.is_some() && self.config.jwt_path.is_some() {
+            panic!("Cannot use both approle and kubernetes jwt login");
+        };
+
         let client = reqwest::Client::builder()
             .timeout(Duration::new(60, 0))
             .danger_accept_invalid_certs(self.config.insecure)
@@ -155,7 +170,6 @@ impl ClientBuilder {
             .expect("Failed to build client");
 
         Ok(Client{ client, config: Arc::new(RwLock::new(self.config.clone())) })
-
     }
 }
 
@@ -243,12 +257,12 @@ impl Client {
         // Check out config
         let mut config = self.config.write().await;
 
-        let data = if !config.jwt_path.is_empty() {
-		    let jwt_token = std::fs::read_to_string(&config.jwt_path).expect("Unable to read jwt token");
-            let data = format!("{{\"role\": \"{}\", \"jwt\": \"{}\"}}", config.vault_role, jwt_token);
+        let data = if config.jwt_path.is_some() {
+		    let jwt_token = std::fs::read_to_string(&config.jwt_path.as_ref().unwrap()).expect("Unable to read jwt token");
+            let data = format!("{{\"role\": \"{}\", \"jwt\": \"{}\"}}", config.vault_kubernetes_role.as_ref().unwrap(), jwt_token);
             data
-        } else if !config.role_id.is_empty() {
-            let data = format!("{{\"role_id\": \"{}\", \"secret_id\": \"{}\"}}", config.role_id, config.secret_id);
+        } else if config.role_id.is_some() {
+            let data = format!("{{\"role_id\": \"{}\", \"secret_id\": \"{}\"}}", config.role_id.as_ref().unwrap(), config.secret_id.as_ref().unwrap());
             data
         } else {
             panic!("Unknown auth backend")
