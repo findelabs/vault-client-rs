@@ -187,7 +187,8 @@ impl Client {
 
         match response.status().as_u16() {
             404 => Err(VaultError::NotFound),
-            401 => Err(VaultError::Forbidden),
+            403 => Err(VaultError::Forbidden),
+            401 => Err(VaultError::Unauthorized),
             200 => {
                 Ok(response.json().await?)
             },
@@ -209,8 +210,8 @@ impl Client {
 
         match response.status().as_u16() {
             404 => Err(VaultError::NotFound),
-            401 => Err(VaultError::Unauthorized),
             403 => Err(VaultError::Forbidden),
+            401 => Err(VaultError::Unauthorized),
             200 => {
                 Ok(response.json().await?)
             },
