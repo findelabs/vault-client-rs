@@ -32,7 +32,6 @@ pub struct Config {
 	jwt_path: String,
     role_id: String,
     secret_id: String,
-    auth_backend: String,
     token: String,
     token_expires: i64,
 	insecure: bool
@@ -244,17 +243,15 @@ impl Client {
         // Check out config
         let mut config = self.config.write().await;
 
-        let data = match config.auth_backend.as_str() {
-            "kubernetes" => {
-		        let jwt_token = std::fs::read_to_string(&config.jwt_path).expect("Unable to read jwt token");
-                let data = format!("{{\"role\": \"{}\", \"jwt\": \"{}\"}}", config.vault_role, jwt_token);
-                data
-            },
-            "approle" => {
-                let data = format!("{{\"role_id\": \"{}\", \"secret_id\": \"{}\"}}", config.role_id, config.secret_id);
-                data
-            },
-            _ => panic!("Unknown auth backend")
+        let data = if !config.jwt_path.is_empty() {
+		    let jwt_token = std::fs::read_to_string(&config.jwt_path).expect("Unable to read jwt token");
+            let data = format!("{{\"role\": \"{}\", \"jwt\": \"{}\"}}", config.vault_role, jwt_token);
+            data
+        } else if !config.role_id.is_empty() {
+            let data = format!("{{\"role_id\": \"{}\", \"secret_id\": \"{}\"}}", config.role_id, config.secret_id);
+            data
+        } else {
+            panic!("Unknown auth backend")
         };
 
         let uri = format!("{}/v1/{}/login", config.vault_url, config.vault_login_path);
