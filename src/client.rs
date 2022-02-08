@@ -159,7 +159,7 @@ impl ClientBuilder {
             panic!("Missing role_id");
         };
 
-        if self.config.role_id.is_some() && self.config.jwt_path.is_some() {
+        if self.config.role_id.is_some() && self.config.kubernetes_role.is_some() {
             panic!("Cannot use both approle and kubernetes jwt login");
         };
 
