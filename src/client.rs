@@ -210,7 +210,7 @@ impl Client {
         match response.status().as_u16() {
             404 => Err(VaultError::NotFound),
             401 => Err(VaultError::Unauthorized),
-            404 => Err(VaultError::Forbidden),
+            403 => Err(VaultError::Forbidden),
             200 => {
                 Ok(response.json().await?)
             },
