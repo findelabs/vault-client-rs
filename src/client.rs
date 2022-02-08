@@ -116,6 +116,11 @@ impl ClientBuilder {
         self
     }
     
+    pub fn with_vault_login_path(mut self, vault_login_path: &str) -> Self {
+        self.config.vault_login_path = vault_login_path.to_string();
+        self
+    }
+
     pub fn with_role_id(mut self, role_id: &str) -> Self {
         self.config.role_id = role_id.to_string();
         self
