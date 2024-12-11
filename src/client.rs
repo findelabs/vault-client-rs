@@ -1,58 +1,58 @@
-use std::error::Error;
-use std::time::Duration;
-use reqwest::header::{HeaderMap, HeaderValue, HeaderName, CONTENT_TYPE};
-use chrono::offset::Utc;
-use chrono::NaiveDateTime;
-use chrono::DateTime;
-use serde_json::{Value, Map};
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use serde::{Serialize, Deserialize};
 use crate::error::*;
+use chrono::offset::Utc;
+use chrono::DateTime;
+use chrono::NaiveDateTime;
+use reqwest::header::{HeaderMap, HeaderName, HeaderValue, CONTENT_TYPE};
+use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
+use std::error::Error;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::RwLock;
 
-type BoxResult<T> = Result<T,Box<dyn Error + Send + Sync>>;
+type BoxResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
 #[derive(Debug, Clone, Default)]
 pub struct Client {
     client: reqwest::Client,
-    config: Arc<RwLock<Config>>
+    config: Arc<RwLock<Config>>,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct ClientBuilder {
-    config: Config
+    config: Config,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct Config {
-	url: String,
-	kubernetes_role: Option<String>,
+    url: String,
+    kubernetes_role: Option<String>,
     mount: String,
     login_path: String,
-	jwt_path: Option<String>,
+    jwt_path: Option<String>,
     role_id: Option<String>,
     secret_id: Option<String>,
     token: String,
     token_expires: i64,
-	insecure: bool
+    insecure: bool,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[allow(dead_code)]
-pub struct Metadata{
+pub struct Metadata {
     created_time: String,
     #[serde(default)]
     custom_metadata: Value,
     deletion_time: String,
     destroyed: bool,
-    version: u64
+    version: u64,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[allow(dead_code)]
 pub struct SecretData {
     data: Map<String, Value>,
-    metadata: Metadata
+    metadata: Metadata,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -80,7 +80,7 @@ pub struct List {
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[allow(dead_code)]
 pub struct ListData {
-    keys: Vec<Value>
+    keys: Vec<Value>,
 }
 
 impl List {
@@ -105,17 +105,17 @@ impl ClientBuilder {
         self.config.kubernetes_role = f;
         self
     }
-    
+
     pub fn with_url(mut self, arg: &str) -> Self {
         self.config.url = arg.to_string();
         self
     }
-    
+
     pub fn with_mount(mut self, arg: &str) -> Self {
         self.config.mount = arg.to_string();
         self
     }
-    
+
     pub fn with_login_path(mut self, arg: &str) -> Self {
         self.config.login_path = arg.to_string();
         self
@@ -126,7 +126,7 @@ impl ClientBuilder {
         self.config.role_id = f;
         self
     }
-    
+
     pub fn with_secret_id(mut self, arg: Option<&str>) -> Self {
         let f: Option<String> = arg.map(String::from);
         self.config.secret_id = f;
@@ -138,7 +138,7 @@ impl ClientBuilder {
         self.config.jwt_path = f;
         self
     }
-    
+
     pub fn insecure(mut self, insecure: bool) -> Self {
         self.config.insecure = insecure;
         self
@@ -147,11 +147,9 @@ impl ClientBuilder {
     pub fn new() -> Self {
         let config = Config::default();
         Self { config }
-
     }
 
     pub fn build(&mut self) -> BoxResult<Client> {
-
         // Ensure role_id and secret_id both exist together
         if self.config.role_id.is_some() && self.config.secret_id.is_none() {
             panic!("Missing secret_id");
@@ -159,7 +157,7 @@ impl ClientBuilder {
             panic!("Missing role_id");
         };
 
-        if self.config.role_id.is_some() && self.config.kubernetes_role.is_some() {
+        if self.config.role_id.is_some() && self.config.jwt_path.is_some() {
             panic!("Cannot use both approle and kubernetes jwt login");
         };
 
@@ -169,17 +167,26 @@ impl ClientBuilder {
             .build()
             .expect("Failed to build client");
 
-        Ok(Client{ client, config: Arc::new(RwLock::new(self.config.clone())) })
+        Ok(Client {
+            client,
+            config: Arc::new(RwLock::new(self.config.clone())),
+        })
     }
 }
 
 impl Client {
     pub async fn get(&mut self, path: &str) -> Result<Secret, VaultError> {
         self.renew().await?;
-        let uri = format!("{}/v1/{}/data/{}", self.url().await, self.mount().await, path);
+        let uri = format!(
+            "{}/v1/{}/data/{}",
+            self.url().await,
+            self.mount().await,
+            path
+        );
         log::debug!("Attempting to get {}", &uri);
 
-        let response = self.client
+        let response = self
+            .client
             .get(uri)
             .headers(self.headers().await?)
             .send()
@@ -189,19 +196,23 @@ impl Client {
             404 => Err(VaultError::NotFound),
             403 => Err(VaultError::Forbidden),
             401 => Err(VaultError::Unauthorized),
-            200 => {
-                Ok(response.json().await?)
-            },
-            _ => Err(VaultError::UnkError)
+            200 => Ok(response.json().await?),
+            _ => Err(VaultError::UnkError),
         }
     }
 
     pub async fn list(&mut self, path: &str) -> Result<List, VaultError> {
         self.renew().await?;
-        let uri = format!("{}/v1/{}/metadata/{}", self.url().await, self.mount().await, path);
+        let uri = format!(
+            "{}/v1/{}/metadata/{}",
+            self.url().await,
+            self.mount().await,
+            path
+        );
         log::debug!("Attempting to list {}", &uri);
 
-        let response = self.client
+        let response = self
+            .client
             .get(uri)
             .headers(self.headers().await?)
             .query(&[("list", "true")])
@@ -212,10 +223,8 @@ impl Client {
             404 => Err(VaultError::NotFound),
             403 => Err(VaultError::Forbidden),
             401 => Err(VaultError::Unauthorized),
-            200 => {
-                Ok(response.json().await?)
-            },
-            _ => Err(VaultError::UnkError)
+            200 => Ok(response.json().await?),
+            _ => Err(VaultError::UnkError),
         }
     }
 
@@ -225,7 +234,11 @@ impl Client {
 
         let mut vec = Vec::new();
         for key in keys {
-            let secret_path = format!("{}{}", path, key.as_str().expect("Could not extract string"));
+            let secret_path = format!(
+                "{}{}",
+                path,
+                key.as_str().expect("Could not extract string")
+            );
             log::debug!("Attempting to get {}", secret_path);
             let secret = self.get(&secret_path).await?;
             vec.push(secret)
@@ -260,11 +273,20 @@ impl Client {
         let mut config = self.config.write().await;
 
         let data = if config.kubernetes_role.is_some() {
-		    let jwt_token = std::fs::read_to_string(&config.jwt_path.as_ref().unwrap()).expect("Unable to read jwt token");
-            let data = format!("{{\"role\": \"{}\", \"jwt\": \"{}\"}}", config.kubernetes_role.as_ref().unwrap(), jwt_token);
+            let jwt_token = std::fs::read_to_string(&config.jwt_path.as_ref().unwrap())
+                .expect("Unable to read jwt token");
+            let data = format!(
+                "{{\"role\": \"{}\", \"jwt\": \"{}\"}}",
+                config.kubernetes_role.as_ref().unwrap(),
+                jwt_token
+            );
             data
         } else if config.role_id.is_some() {
-            let data = format!("{{\"role_id\": \"{}\", \"secret_id\": \"{}\"}}", config.role_id.as_ref().unwrap(), config.secret_id.as_ref().unwrap());
+            let data = format!(
+                "{{\"role_id\": \"{}\", \"secret_id\": \"{}\"}}",
+                config.role_id.as_ref().unwrap(),
+                config.secret_id.as_ref().unwrap()
+            );
             data
         } else {
             panic!("Unknown auth backend")
@@ -274,29 +296,28 @@ impl Client {
 
         log::debug!("Using body: {}", data);
 
-        let response = self.client
-            .clone()
-            .post(uri)
-            .body(data)
-            .send()
-            .await?;
+        let response = self.client.clone().post(uri).body(data).send().await?;
 
         match response.status() {
             reqwest::StatusCode::OK => log::info!("Successfully logged in to {}", config.url),
             _ => {
                 log::error!("Error logging in to controller: {}", response.status());
-                return Err(VaultError::LoginError)
+                return Err(VaultError::LoginError);
             }
         };
 
         let body: Value = response.json().await?;
 
-        let token_expires = Utc::now().timestamp() + body["auth"]["lease_duration"].as_i64().unwrap_or(0);
-        let token = body["auth"]["client_token"].as_str().unwrap_or("error").to_string();
+        let token_expires =
+            Utc::now().timestamp() + body["auth"]["lease_duration"].as_i64().unwrap_or(0);
+        let token = body["auth"]["client_token"]
+            .as_str()
+            .unwrap_or("error")
+            .to_string();
 
         match token == config.token {
             true => log::info!("client_token is the same as before..."),
-            false => { 
+            false => {
                 log::debug!("Registered token: {}", &token);
                 config.token = token;
             }
